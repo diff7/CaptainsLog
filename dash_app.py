@@ -30,18 +30,18 @@ from textfuncs import get_last_text_records
 from styles import style, text_style, text_style_normal
 
 cfg = omg.load("./config.yaml")
+pull_data_frame_from_google()
 banner = cfg.banner
 slider_step = cfg.slider_step
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.CYBORG])
-
 frame, colulmn_groups = init_data(90)
 
 
 slider = dcc.Slider(
     id="day-slider",
     min=0,
-    max=len(frame.index),
+    max=frame.shape[0],
     value=len(frame.index),
     marks={str(i): str(i) for i in range(0, frame.shape[0], slider_step)},
 )
