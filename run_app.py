@@ -102,7 +102,7 @@ app.layout = dbc.Container(
                             id="graph-heatmap-daily",
                         ),
                     ],
-                    label="Daly",
+                    label="Daliy",
                     tab_id="daily_tab",
                     style=text_style_normal,
                 ),
