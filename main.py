@@ -65,10 +65,10 @@ def digitize_data(last_week, column_groups):
     return out
 
 
-def get_frame_time_period(frame, window_start, window_end=0):
-    end = datetime.now() - timedelta(days=window_end)
+def get_frame_time_period(frame, window_start):
+    # end = datetime.now() - timedelta(days=window_left + window_len)
     start = datetime.now() - timedelta(days=window_start)
-    return frame[(frame.index >= start) & (frame.index <= end)]
+    return frame[(frame.index >= start)]
 
 
 filter_name = lambda name: name.split("@")[0].capitalize()
@@ -87,7 +87,7 @@ def process_yes_no_to_df(yes_no_frame):
 
 
 def process_time_cols_to_df(time_frame):
-    time_frame = time_frame.replace("", "00:00:00")
+    time_frame = time_frame.replace("", "2000 00:00:00")
     time_frame.dropna(inplace=True)
     # time_frame = time_frame.apply(lambda x: '2016-01-01 ' + str(x), axis=1)
     time_frame = pd.concat(
@@ -179,8 +179,9 @@ def mean_report_dict(last_week, column_groups):
 
 def mean_report_df(last_week, column_groups):
     data = digitize_data(last_week, column_groups)
-    data["week"] = data.index.week
-    return data.groupby("week").mean(0)
+    # data["week"] = data.index.to_period("W")
+    res = data.groupby(pd.Grouper(freq="W")).mean(0)
+    return res
 
 
 def init_data(period):
@@ -190,21 +191,21 @@ def init_data(period):
     return frame, column_groups
 
 
-def make_weekly_stats(data_frame, column_groups):
-    weeks = int(data_frame.shape[1] / 7)
-    mean_weeks = []
-    for i in range(weeks - 1, -1, -1):
-        week = get_frame_time_period(
-            data_frame, window_start=(i + 1) * 7, window_end=i * 7
-        )
-        mean_weeks.append(mean_report_dict(week, column_groups))
+# def make_weekly_stats(data_frame, column_groups):
+#     weeks = int(data_frame.shape[1] / 7)
+#     mean_weeks = []
+#     for i in range(weeks - 1, -1, -1):
+#         week = get_frame_time_period(
+#             data_frame, window_left=(i + 1) * 7, window_end=i * 7
+#         )
+#         mean_weeks.append(mean_report_dict(week, column_groups))
 
-    mean_weeks_dict = {}
-    for mean_week in mean_weeks:
-        for tp in mean_week:
-            for key in mean_week[tp]:
-                if not key in mean_weeks_dict:
-                    mean_weeks_dict[key] = []
-                mean_weeks_dict[key].append(mean_week[tp][key])
+#     mean_weeks_dict = {}
+#     for mean_week in mean_weeks:
+#         for tp in mean_week:
+#             for key in mean_week[tp]:
+#                 if not key in mean_weeks_dict:
+#                     mean_weeks_dict[key] = []
+#                 mean_weeks_dict[key].append(mean_week[tp][key])
 
-    return mean_weeks_dict, weeks
+#     return mean_weeks_dict, weeks

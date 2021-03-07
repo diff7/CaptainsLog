@@ -4,6 +4,9 @@ from main import get_last_text
 
 
 def get_last_text_records(frame, column_groups, ago):
+    print("AGO", ago)
+    # need to show or last date or ago
+    ago = min(ago, frame.shape[0] - 1)
     text = ["DATE: " + str(frame.reset_index().iloc[ago, 0])]
     last_text = get_last_text(frame[column_groups["@text"]], ago)
     for col in last_text:

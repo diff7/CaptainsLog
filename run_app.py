@@ -1,13 +1,11 @@
+import os
 import dash
 import dash_core_components as dcc
 import dash_bootstrap_components as dbc
 import dash_html_components as html
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 from omegaconf import OmegaConf as omg
 
-# TODO REFRESH
-# LISTS TXT
-# START USING
 
 from main import (
     get_column_groups,
@@ -26,25 +24,33 @@ from plotfuncs import (
     make_figures_words,
 )
 
+from form_builder import build_forms
+from basic_forms import make_one_question_form
+from basic_writer import write, SqlConnect
+
 from textfuncs import get_last_text_records
 from styles import style, text_style, text_style_normal
 
 cfg = omg.load("./config.yaml")
+
+sql_connect = SqlConnect(os.path.join(cfg.folder, cfg.db_name))
+
 pull_data_frame_from_google()
 banner = cfg.banner
 slider_step = cfg.slider_step
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.CYBORG])
-frame, colulmn_groups = init_data(90)
+frame, colulmn_groups = init_data(cfg.period_start)
 
 
 slider = dcc.Slider(
     id="day-slider",
     min=0,
     max=frame.shape[0],
-    value=len(frame.index),
+    value=frame.shape[0],
     marks={str(i): str(i) for i in range(0, frame.shape[0], slider_step)},
 )
+
 
 app.layout = dbc.Container(
     [
@@ -85,7 +91,7 @@ app.layout = dbc.Container(
                             ),
                         ],
                     ),
-                    label="LAST RECORDS",
+                    label="Journal entries",
                     tab_id="free_flow_tab",
                     style=text_style_normal,
                 ),
@@ -96,7 +102,7 @@ app.layout = dbc.Container(
                             id="graph-heatmap-daily",
                         ),
                     ],
-                    label="DAILY",
+                    label="Daly",
                     tab_id="daily_tab",
                     style=text_style_normal,
                 ),
@@ -109,8 +115,14 @@ app.layout = dbc.Container(
                             id="graph-heatmap-weekly",
                         ),
                     ],
-                    label="WEEKLY",
+                    label="Weekly",
                     tab_id="weekly-tab",
+                    style=text_style_normal,
+                ),
+                dbc.Tab(
+                    children=[build_forms(app, sql_connect)],
+                    label="Quick Note",
+                    tab_id="question-tab",
                     style=text_style_normal,
                 ),
             ],
@@ -122,13 +134,19 @@ app.layout = dbc.Container(
 
 
 @app.callback(
-    Output("num_records", "children"),
+    [
+        Output("num_records", "children"),
+        Output("day-slider", "max"),
+        Output("day-slider", "value"),
+    ],
     [Input("button_load_df", "n_clicks")],
 )
 def pull_the_data(n_clicks):
     pull_data_frame_from_google()
     frame = get_local_data_frame()
-    return f"num records {frame.shape[0]}"
+    frame = get_frame_time_period(frame, window_start=cfg.period_start)
+
+    return f"num records {frame.shape[0]}", frame.shape[0], len(frame.index)
 
 
 @app.callback(
@@ -160,18 +178,22 @@ def updtae_plots(selected_time):
     ]
     return (
         *[f(df, column_groups) for f in get_plots],
-        get_last_text_records(frame, column_groups, ago - 1),
+        get_last_text_records(frame, column_groups, ago),
         f" Time period: {int(selected_time) } days",
         make_figures_words(words_count_dict),
     )
 
 
-# @app.callback(Output("tab-content", "children"), [Input("tabs", "value")])
-# def render_content(tab):
-#     if tab == "tab-1":
-#         return html.Div([html.H3("Tab content 1")])
-#     elif tab == "tab-2":
-#         return html.Div([html.H3("Tab content 2")])
+# @app.callback(
+#     Output("question-form", "value"),
+#     Input("question-button", "n_clicks"),
+#     State("question-form", "value"),
+# )
+# def update_output(n_clicks, value):
+#     if n_clicks > 0:
+#         write(sql_connect, value)
+
+#         return "You have entered: \n{}".format(value)
 
 
 if __name__ == "__main__":
